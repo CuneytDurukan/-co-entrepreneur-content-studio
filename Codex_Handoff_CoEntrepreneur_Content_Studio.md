@@ -7,6 +7,8 @@
 **Status:** Approved concept; discovery and implementation not yet started  
 **Last updated:** 2026-08-19
 
+**Environment update:** The SEO Framework was removed and **Rank Math SEO** was activated on 2026-08-19. All SEO integration and testing below must target Rank Math. Discovery must still verify the installed Rank Math edition, version, modules and migration state.
+
 ---
 
 ## 1. Executive decision
@@ -51,7 +53,7 @@ The following was observed through the public site and WordPress REST API on 202
 
 - WordPress REST API is enabled.
 - The site currently reports WordPress 6.9.5 in frontend assets.
-- The site uses **The SEO Framework**, not Yoast or Rank Math.
+- The product owner confirms that **The SEO Framework was removed and Rank Math SEO was activated on 2026-08-19**. Codex must verify the installed Rank Math edition, version and active modules in local/staging before implementing the adapter.
 - The site uses **Polylang** and Turkish posts use `/tr/` URLs.
 - A custom taxonomy named `content_cluster` is exposed through the REST API.
 - Existing Turkish editorial categories include:
@@ -62,14 +64,14 @@ The following was observed through the public site and WordPress REST API on 202
   - `netherlands-eu-expansion-base` — Netherlands as EU Expansion Base
 - The published pillar post currently has WordPress post ID `550` and slug:
   - `hollandada-sirket-kurma-turk-sirketler-icin-avrupa-operasyonu-rehberi`
-- Standard public post responses expose only `footnotes` under `meta`; The SEO Framework fields are not exposed for REST writing.
+- Previously observed standard public post responses exposed only `footnotes` under `meta`. Do not assume Rank Math write fields are exposed through `wp/v2/posts`; verify authenticated save behavior locally or in staging.
 - Polylang language and translation fields are not present in the standard public `wp/v2/posts` response.
 
 ### Existing issues that are not to be silently changed
 
 These are separate remediation items. Codex may document and propose fixes, but must not modify production without explicit approval.
 
-1. The pillar page outputs duplicate meta-description and Open Graph layers: one custom/manual layer and one from The SEO Framework.
+1. Before the SEO-plugin change, the pillar page output duplicate meta-description and Open Graph layers: one custom/manual layer and one from The SEO Framework. Re-audit after Rank Math activation; do not assume removal of The SEO Framework resolved the custom/manual layer or migrated metadata correctly.
 2. The page outputs a `meta keywords` tag, which is unnecessary.
 3. A publication checklist and placeholders were shipped inside an HTML comment in the pillar body.
 4. A malformed tag exists: `pazara giriş stratejisiHollanda’da şirket kurma`.
@@ -132,9 +134,12 @@ The plugin must create or update:
 - featured image ID when supplied
 - media alt text when supplied
 - language via Polylang
-- SEO title via The SEO Framework
-- meta description via The SEO Framework
+- SEO title via Rank Math
+- meta description via Rank Math
+- optional Rank Math focus keyword(s), when explicitly supplied in the package
 - social title/description/image only if explicitly supplied and supported safely
+
+Canonical URL, robots directives and schema settings should normally inherit the approved Rank Math/site defaults. Only write per-post overrides when they are explicitly represented in a future schema revision and have been reviewed in the import preview.
 
 Every initial write must force `post_status = draft`, regardless of the input package. There must be no API route or interface action in v1 that publishes a post live.
 
@@ -171,6 +176,7 @@ The publication package is the interface between ChatGPT and the plugin. Treat i
   "title": "Hollanda’ya Giriş Modeli: BV, Şube, Distribütör veya Acente?",
   "seo_title": "Hollanda’da BV mi, Şube mi, Distribütör mü?",
   "meta_description": "Türk şirketleri için Hollanda’ya giriş modellerini; kontrol, maliyet, müşteri ilişkisi ve operasyon ihtiyacı açısından karşılaştırın.",
+  "focus_keywords": ["Hollanda'da şirket kurma modelleri"],
   "slug": "hollandada-bv-sube-distributor-acente",
   "excerpt": "Hollanda pazarına BV, şube, distribütör veya acente modeliyle girmenin farklarını ve doğru modeli nasıl seçeceğinizi değerlendirin.",
   "author": {
@@ -228,6 +234,7 @@ The publication package is the interface between ChatGPT and the plugin. Treat i
 - Use slugs rather than numeric taxonomy IDs in packages.
 - Do not automatically create unknown categories, tags or clusters in v1.
 - Unknown taxonomy terms are blocking validation errors.
+- `focus_keywords`, when supplied, must be a short reviewed array; the plugin must not generate keyword stuffing or treat a Rank Math score as a publication gate.
 - `body_html` must not contain an `<h1>` because the theme renders the post title.
 - The package must not contain credentials, API keys or private client information.
 
@@ -270,7 +277,7 @@ Classify results as **blocking error**, **warning** or **information**.
 
 Preserve approved Co-Entrepreneur classes such as CTA and field-note classes. Do not silently strip tables, lists, links or approved semantic markup. Sanitize with an explicit allowlist and test HTML round-tripping.
 
-Do not add FAQ or HowTo schema merely because a section uses questions or steps. Structured data is owned by the active SEO/theme stack unless a future requirement explicitly changes this.
+Do not add FAQ or HowTo schema merely because a section uses questions or steps. Structured data is owned by Rank Math and the active theme unless a future requirement explicitly changes this. The plugin must not add a second Article, FAQ or HowTo schema layer.
 
 ---
 
@@ -312,19 +319,23 @@ Only the content inside these markers may be replaced automatically after explic
 
 ## 8. Integration requirements
 
-### 8.1 The SEO Framework
+### 8.1 Rank Math SEO
 
 Do not guess metadata keys or depend directly on undocumented database fields.
 
 During discovery:
 
-1. Determine the installed plugin version.
-2. Inspect the official/current plugin APIs and the actual save behavior in a staging environment.
-3. Implement a narrow `SeoAdapter` interface.
-4. Verify the rendered `<head>` output, not only database writes.
-5. Confirm exactly one effective title, description, canonical and Open Graph layer.
+1. Determine the installed Rank Math edition, version, operating mode and enabled modules.
+2. Check whether metadata was imported from The SEO Framework and identify any stale custom/manual SEO output without changing production.
+3. Inspect Rank Math's official/current developer hooks and the actual editor/save behavior in a disposable local or staging environment.
+4. Implement a narrow `SeoAdapter` interface with a `RankMathAdapter`; keep plugin-specific storage details isolated there.
+5. Verify the rendered `<head>` output and WordPress editor values, not only database writes.
+6. Confirm exactly one effective title, description, canonical, robots, Open Graph and Twitter-card layer.
+7. Verify Rank Math sitemap inclusion and schema output for a representative draft preview and published staging post.
 
-If a supported write API cannot be established safely, stop and present options before implementing a brittle workaround.
+Rank Math documents a `rankmath/v1/getHead` endpoint for retrieving generated head markup when its Headless CMS Support setting is enabled. This project is not headless, so do not enable that setting merely for the plugin. It may be used as an optional verification aid only if already enabled or explicitly approved.
+
+If a stable supported write path cannot be established, stop and present options before implementing a brittle workaround. Do not make the Rank Math numerical SEO score a blocking acceptance criterion; validate actual fields and rendered output instead.
 
 ### 8.2 Polylang
 
@@ -382,7 +393,7 @@ co-entrepreneur-content-studio/
 │   ├── Validation/
 │   ├── Publishing/
 │   ├── Integrations/
-│   │   ├── SeoFrameworkAdapter.php
+│   │   ├── RankMathAdapter.php
 │   │   └── PolylangAdapter.php
 │   ├── InternalLinks/
 │   └── Audit/
@@ -412,7 +423,8 @@ Avoid adding production dependencies without explaining why they are needed. Pre
 
 - Establish a Git repository.
 - Inspect any supplied site/plugin/theme code and development environment.
-- Determine PHP, WordPress, The SEO Framework and Polylang versions.
+- Determine PHP, WordPress, Rank Math edition/version/modules and Polylang version.
+- Audit whether Rank Math migration left duplicate or stale SEO output from the previous setup.
 - Confirm how `content_cluster` is registered.
 - Document current post/meta/taxonomy behavior.
 - Produce an implementation plan and risk register.
@@ -433,7 +445,7 @@ Avoid adding production dependencies without explaining why they are needed. Pre
 
 - Create/update draft posts idempotently.
 - Integrate taxonomies.
-- Integrate The SEO Framework through the approved adapter.
+- Integrate Rank Math through the approved adapter.
 - Integrate Polylang through the approved adapter.
 - Add audit logging.
 - Test only in staging or a disposable local WordPress environment.
@@ -463,7 +475,7 @@ V1 is complete only when all of the following are demonstrated:
 1. A valid Turkish package creates exactly one WordPress draft.
 2. The post title, slug, excerpt, author, category, tags and cluster are correct.
 3. Polylang reports the post language as Turkish and the expected `/tr/` permalink is generated.
-4. The SEO title and description are saved through The SEO Framework and appear correctly in rendered output.
+4. The SEO title, description and optional reviewed focus keyword(s) are saved through Rank Math and appear correctly in the editor/rendered output as applicable.
 5. The generated page has one effective description, canonical and Open Graph layer attributable to the intended stack.
 6. A package containing placeholders or an `<h1>` is blocked before any write.
 7. Unknown taxonomies are blocked rather than automatically created.
@@ -489,7 +501,7 @@ V1 is complete only when all of the following are demonstrated:
 - English content and translation-pair creation
 - Search Console submission or indexing requests
 - Analytics dashboards
-- Replacing The SEO Framework or Polylang
+- Replacing Rank Math or Polylang
 - Broad taxonomy redesign
 
 These may be evaluated only after v1 is stable and used for several real posts.
@@ -522,7 +534,7 @@ Codex should create a concise root `AGENTS.md` from the rules below after the re
 - Read this handoff before planning or editing.
 - Never make production WordPress writes without explicit approval.
 - Never introduce live auto-publishing.
-- Keep The SEO Framework and Polylang integrations behind adapters.
+- Keep Rank Math and Polylang integrations behind adapters.
 - Do not guess plugin metadata keys or APIs; verify them.
 - Use taxonomy slugs, not environment-specific IDs.
 - Preserve approved article HTML and classes.
@@ -538,21 +550,22 @@ Keep `AGENTS.md` short. Link back to this handoff and technical docs rather than
 
 ## 16. Exact first prompt to give Codex
 
-Start Codex in an empty Git repository or a repository created specifically for this plugin. Add this handoff file to the repository root, then use Plan mode with the following prompt:
+Start Codex in the Git repository created specifically for this plugin. Add this handoff file to the repository root, then use Plan mode with the following prompt. Plan mode is discovery-only: it must not edit files in this first turn.
 
 ```text
 Read Codex_Handoff_CoEntrepreneur_Content_Studio.md in full.
 
-We are building the private WordPress plugin described there. Begin with Phase 0 only. Do not write production integration code and do not access or modify the live WordPress site.
+We are building the private WordPress plugin described there. Begin with Phase 0 only. Do not write production integration code. Do not authenticate to, administer or modify the live WordPress site. Public read-only inspection is allowed only when needed to verify non-sensitive output.
 
 Your task in this turn:
 1. Inspect the repository and any development-environment files available to you.
 2. Identify missing information that materially affects architecture or safe implementation.
-3. Propose the smallest local or staging WordPress development environment needed to verify The SEO Framework, Polylang and the content_cluster taxonomy.
-4. Produce a phased implementation plan mapped to the handoff acceptance criteria.
-5. Propose the repository structure, test strategy, coding-standard commands and rollback approach.
-6. Create a concise AGENTS.md containing only durable repository rules from the handoff.
-7. Stop after the plan and AGENTS.md. Do not begin Phase 1 until I approve the plan.
+3. Propose the smallest local or staging WordPress development environment needed to verify Rank Math, Polylang and the content_cluster taxonomy.
+4. Include a read-only migration audit plan for possible stale or duplicate SEO output left after replacing The SEO Framework with Rank Math.
+5. Produce a phased implementation plan mapped to the handoff acceptance criteria.
+6. Propose the repository structure, test strategy, coding-standard commands and rollback approach.
+7. List the durable rules that should go into AGENTS.md after plan approval.
+8. Stop after presenting the plan and open questions. Do not edit files and do not begin Phase 1 until I approve the plan.
 
 Challenge assumptions where necessary. Do not guess undocumented plugin fields or APIs. Clearly separate what is confirmed, what must be verified in staging and what requires a decision from me.
 ```
@@ -564,9 +577,9 @@ Challenge assumptions where necessary. Do not guess undocumented plugin fields o
 ```text
 The Phase 0 plan is approved, including the decisions recorded in the repository docs.
 
-Implement Phase 1 only: the safe plugin skeleton, WordPress-native admin interface, publication-package JSON Schema, dry-run parsing and validation, and automated validation tests.
+Switch from Plan mode to the normal coding mode. First create a concise root AGENTS.md containing the approved durable repository rules and linking back to the handoff. Then implement Phase 1 only: the safe plugin skeleton, WordPress-native admin interface, publication-package JSON Schema, dry-run parsing and validation, and automated validation tests.
 
-Do not implement The SEO Framework writes, Polylang writes, post creation, internal-link mutations or production deployment yet. Use fixtures for the supplied valid and invalid sample packages.
+Do not implement Rank Math writes, Polylang writes, post creation, internal-link mutations or production deployment yet. Use fixtures for the supplied valid and invalid sample packages.
 
 Before handing back:
 - run all documented tests, linting and coding-standard checks;
@@ -584,13 +597,14 @@ Do not request these all at once unless they are immediately blocking. Resolve t
 1. Is a staging copy of the WordPress site available?
 2. Can the current custom theme/plugin code that registers `content_cluster` be provided?
 3. What PHP version runs on the server?
-4. What are the installed versions of The SEO Framework and Polylang?
-5. Which WordPress login should be the default named author?
-6. What is the canonical Blueprint CTA URL?
-7. Which tags should be in the approved v1 vocabulary?
-8. Should existing published posts ever be editable by the plugin, or should v1 stop at link proposals?
-9. Who is allowed to use the Content Studio capability?
-10. What backup/staging workflow does the hosting provider currently offer?
+4. What Rank Math edition/version/modules and Polylang version are installed?
+5. During the switch to Rank Math, was metadata imported from The SEO Framework, and is there a staging environment where migration output can be checked safely?
+6. Which WordPress login should be the default named author?
+7. What is the canonical Blueprint CTA URL?
+8. Which tags should be in the approved v1 vocabulary?
+9. Should existing published posts ever be editable by the plugin, or should v1 stop at link proposals?
+10. Who is allowed to use the Content Studio capability?
+11. What backup/staging workflow does the hosting provider currently offer?
 
 Never request or store production passwords in repository files or chat. Credentials, if needed later, must be entered directly in the appropriate secure environment.
 
@@ -618,6 +632,7 @@ Only evaluate after v1 has processed several real posts successfully:
 - WordPress REST post fields: https://developer.wordpress.org/rest-api/reference/posts/
 - WordPress REST authentication: https://developer.wordpress.org/rest-api/using-the-rest-api/authentication/
 - WordPress plugin handbook: https://developer.wordpress.org/plugins/
+- Rank Math developer filters and hooks: https://rankmath.com/kb/filters-hooks-api-developer/
+- Rank Math headless metadata endpoint (verification reference only): https://rankmath.com/kb/headless-cms-support/
 - Codex best practices and AGENTS.md: https://learn.chatgpt.com/guides/best-practices
 - Codex AGENTS.md discovery: https://learn.chatgpt.com/docs/agent-configuration/agents-md
-
