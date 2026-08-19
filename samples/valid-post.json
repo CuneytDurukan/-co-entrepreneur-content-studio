@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "content_id": "ce-c1-01-bv-branch-distributor",
+  "language": "tr",
+  "title": "Hollanda’ya Giriş Modeli: BV, Şube, Distribütör veya Acente?",
+  "seo_title": "Hollanda’da BV mi, Şube mi, Distribütör mü?",
+  "meta_description": "Türk şirketleri için Hollanda’ya giriş modellerini kontrol, maliyet ve operasyon açısından karşılaştırın.",
+  "focus_keyword": "Hollanda'da şirket kurma modelleri",
+  "slug": "hollandada-bv-sube-distributor-acente",
+  "excerpt": "Hollanda pazarına giriş modellerini ve doğru seçimi değerlendirin.",
+  "category_slugs": [
+    "rehberler"
+  ],
+  "tag_slugs": [
+    "hollanda-bv",
+    "avrupa-pazara-giris"
+  ],
+  "content_cluster_slugs": [
+    "netherlands-eu-expansion-base"
+  ],
+  "body_html": "<p>Hollanda pazarına giriş yöntemi kontrol, maliyet ve müşteri ilişkilerini doğrudan etkiler.</p><h2>Giriş modellerini karşılaştırın</h2><p>Önce <a href=\"https://co-entrepreneur.net/tr/hollandada-sirket-kurma-turk-sirketler-icin-avrupa-operasyonu-rehberi/\">Hollanda üzerinden Avrupa operasyonu kurma rehberini</a> inceleyin.</p>",
+  "featured_image": null,
+  "required_internal_urls": [
+    "https://co-entrepreneur.net/tr/hollandada-sirket-kurma-turk-sirketler-icin-avrupa-operasyonu-rehberi/"
+  ],
+  "reciprocal_link_suggestions": [
+    {
+      "source_post_id": 550,
+      "anchor": "BV, şube, distribütör veya acente karşılaştırması"
+    }
+  ]
+}

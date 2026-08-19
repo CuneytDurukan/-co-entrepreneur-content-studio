@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "content_id": "ce-invalid-placeholder-example",
+  "language": "tr",
+  "title": "Geçersiz örnek paket",
+  "seo_title": "Geçersiz örnek paket",
+  "meta_description": "Bu paket engelleyici doğrulama hatalarını göstermek için hazırlanmıştır.",
+  "slug": "gecersiz-ornek-paket",
+  "excerpt": "Yalnızca doğrulama testi için kullanın.",
+  "category_slugs": [
+    "rehberler"
+  ],
+  "tag_slugs": [],
+  "content_cluster_slugs": [
+    "netherlands-eu-expansion-base"
+  ],
+  "body_html": "<h1>Bu başlık engellenmelidir</h1><p>INTERNAL: bağlantı eklenecek. <a href=\"#\">REPLACE_DURING_SETUP</a></p><script>alert('blocked');</script>",
+  "featured_image": null,
+  "required_internal_urls": [
+    "https://co-entrepreneur.net/tr/eksik-baglanti/"
+  ],
+  "reciprocal_link_suggestions": []
+}
